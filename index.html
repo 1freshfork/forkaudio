@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>forkaudio</title>
+    <style>
+        :root {
+            --bg-glass: rgba(10, 10, 18, 0.6);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --input-bg: rgba(20, 20, 28, 0.7);
+            --accent-white: #ffffff;
+            --text-secondary: #9494a8;
+            --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #040408;
+            background: radial-gradient(circle at 30% 10%, #0d0d1a, #020205);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-main);
+            padding: 16px;
+            overflow: hidden;
+            color: var(--accent-white);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Парящий премиум-контейнер */
+        .app-container {
+            width: 100%;
+            max-width: 375px;
+            height: 760px;
+            background: var(--bg-glass);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-radius: 44px;
+            border: 1px solid var(--border-glass);
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255,255,255,0.1);
+            padding: 28px 24px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Анимированная Аура на бэкграунде */
+        .app-container::before {
+            content: '';
+            position: absolute;
+            top: -30%;
+            left: -30%;
+            width: 160%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(140, 145, 255, 0.08), transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+            animation: aurora 12s infinite alternate ease-in-out;
+        }
+
+        @keyframes aurora {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(40px, 20px) scale(1.15); }
+        }
+
+        /* Экраны */
+        .screen {
+            position: absolute;
+            top: 28px;
+            left: 24px;
+            right: 24px;
+            bottom: 28px;
+            display: none;
+            flex-direction: column;
+            z-index: 1;
+        }
+
+        .screen.active {
+            display: flex;
+            animation: screenIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes screenIn {
+            from { opacity: 0; transform: translateY(15px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* Скролл для меню настроек */
+        .screen-setup {
+            gap: 18px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .screen-setup::-webkit-scrollbar {
+            width: 3px;
+        }
+        .screen-setup::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #ffffff 0%, #a5a5c5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        label {
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        /* Скрытые нативные инпуты */
+        .hidden-input {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
+        /* Кастомные элементы управления */
+        input[type="text"], .custom-btn-trigger {
+            background: var(--input-bg);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 18px;
+            padding: 14px 18px;
+            color: var(--accent-white);
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.25s ease;
+            width: 100%;
+            outline: none;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        input[type="text"] {
+            cursor: text;
+        }
+
+        input[type="text"]:focus, .custom-btn-trigger:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(30, 30, 42, 0.8);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.03);
+        }
+
+        /* Табы для обложки */
+        .cover-tabs {
+            display: flex;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 14px;
+            padding: 3px;
+            gap: 4px;
+            margin-bottom: 4px;
+        }
+
+        .cover-tab {
+            flex: 1;
+            background: transparent;
+            border: none;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 8px 0;
+            border-radius: 11px;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .cover-tab.active {
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--accent-white);
+        }
+
+        /* Кастомный выпадающий список */
+        .select-container {
+            position: relative;
+        }
+
+        .select-trigger {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .select-trigger::after {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-right: 1.5px solid var(--text-secondary);
+            border-bottom: 1.5px solid var(--text-secondary);
+            transform: rotate(45deg);
+            transition: transform 0.25s ease;
+        }
+
+        .select-container.open .select-trigger::after {
+            transform: rotate(-135deg);
+        }
+
+        .select-options {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            background: rgba(20, 20, 28, 0.95);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            padding: 6px;
+            z-index: 10;
+            display: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .select-container.open .select-options {
+            display: block;
+        }
+
+        .select-option {
+            padding: 10px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.15s;
+        }
+
+        .select-option:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        /* ПОЛНОСТЬЮ КАСТОМНЫЙ ДВУХДИАПАЗОННЫЙ СЛАЙДЕР */
+        .range-slider-card {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 22px;
+            padding: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .custom-slider-track {
+            position: relative;
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin: 16px 0;
+            cursor: pointer;
+        }
+
+        .custom-slider-fill {
+            position: absolute;
+            height: 100%;
+            background: linear-gradient(90deg, #ffffff, #a5a5c5);
+            border-radius: 3px;
+        }
+
+        .custom-slider-thumb {
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: var(--accent-white);
+            border-radius: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 3px 8px rgba(0,0,0,0.4);
+            cursor: grab;
+            transition: transform 0.1s;
+        }
+
+        .custom-slider-thumb:active {
+            cursor: grabbing;
+            transform: translate(-50%, -50%) scale(1.15);
+        }
+
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        /* Главная кнопка отправки */
+        .btn-submit {
+            background: var(--accent-white);
+            border: none;
+            border-radius: 20px;
+            padding: 16px;
+            font-weight: 700;
+            font-size: 15px;
+            color: #000;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            margin-top: auto;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 28px rgba(255,255,255,0.1);
+        }
+
+        .btn-submit:active {
+            transform: translateY(1px) scale(0.99);
+        }
+
+        /* --- ЭКРАН ПЛЕЕРА --- */
+        .screen-player {
+            justify-content: space-between;
+            height: 100%;
+        }
+
+        .player-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .btn-back {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            padding: 8px 16px;
+            border-radius: 30px;
+            color: #e0e0e0;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* ЖЕСТКИЙ ПРЕМИУМ-ВОДЯНОЙ ЗНАК ПРЯМО ПОД ПЛЕЕРОМ */
+        .video-watermark {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 6px 14px;
+            border-radius: 14px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.55);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            box-shadow: inset 0 1px 0px rgba(255, 255, 255, 0.05);
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.15);
+            user-select: none;
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            margin-top: 4px;
+        }
+        .video-watermark a{
+            text-decoration: none;
+            color: white;
+        }
+
+        .player-center {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+
+        /* Обложка трека */
+        .album-wrapper {
+            width: 160px;
+            height: 160px;
+            position: relative;
+            animation: floatEffect 4s infinite alternate ease-in-out;
+        }
+
+        @keyframes floatEffect {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-8px); }
+        }
+
+        .album-cover {
+            width: 100%;
+            height: 100%;
+            border-radius: 28px;
+            object-fit: cover;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        }
+
+        /* Метаданные трека */
+        .meta-container {
+            text-align: center;
+            max-width: 100%;
+        }
+
+        .title-badge-wrap {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .player-title {
+            font-size: 20px;
+            font-weight: 750;
+            letter-spacing: -0.3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .explicit-badge {
+            background: var(--accent-white);
+            color: #000;
+            font-size: 8px;
+            font-weight: 900;
+            padding: 3px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .player-artist {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* ИНТЕРАКТИВНАЯ ВОЛНА С КЛИППИНГОМ */
+        .waveform-component {
+            width: 100%;
+            height: 64px;
+            position: relative;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .waveform-bg, .waveform-progress {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .waveform-bg {
+            z-index: 1;
+        }
+
+        .waveform-progress {
+            z-index: 2;
+            pointer-events: none;
+            clip-path: inset(0 100% 0 0);
+            transition: clip-path 0.1s linear;
+        }
+
+        .wave-bar {
+            flex: 1;
+            border-radius: 3px;
+            transition: height 0.3s ease;
+        }
+
+        .waveform-bg .wave-bar {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .waveform-progress .wave-bar {
+            background: var(--accent-white);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+        }
+
+        .time-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            padding: 0 2px;
+        }
+
+        /* Элементы управления воспроизведением */
+        .controls-row {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            margin-top: 4px;
+        }
+
+        .round-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-white);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .round-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: scale(1.04);
+        }
+
+        .round-btn:active {
+            transform: scale(0.96);
+        }
+
+        .round-btn.play-state {
+            background: var(--accent-white);
+            color: #000;
+            width: 64px;
+            height: 64px;
+            box-shadow: 0 10px 25px rgba(255,255,255,0.15);
+        }
+
+        .round-btn.play-state:hover {
+            background: #f2f2f2;
+            transform: scale(1.05);
+        }
+
+        .round-btn.play-state svg {
+            fill: currentColor;
+            width: 24px;
+            height: 24px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <div id="setupScreen" class="screen screen-setup active">
+        <div>
+            <h2>🎧 Собери микстейп</h2>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-top: 3px;">премиум звук, компактный стиль</p>
+        </div>
+
+        <div class="form-group">
+            <label>🎵 Аудиофайл</label>
+            <div class="select-container">
+                <div class="custom-btn-trigger" id="audioTriggerBtn">Выбрать трек</div>
+                <input type="file" id="audioInput" class="hidden-input" accept="audio/*">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>🏷️ Название трека</label>
+            <input type="text" id="titleInput" placeholder="Например: VOCE VAI TEKK">
+        </div>
+
+        <div class="form-group">
+            <label>🎤 Исполнитель</label>
+            <input type="text" id="authorInput" placeholder="Например: DJ BEATCOIN">
+        </div>
+
+        <div class="form-group">
+            <label>🖼️ Обложка релиза</label>
+            <div class="cover-tabs">
+                <button class="cover-tab active" id="tabFileBtn">📁 Локальный...</button>
+                <button class="cover-tab" id="tabUrlBtn">🔗 URL</button>
+            </div>
+            <div id="coverFileBox">
+                <div class="custom-btn-trigger" id="coverTriggerBtn">Загрузить картинку</div>
+                <input type="file" id="coverInput" class="hidden-input" accept="image/*">
+            </div>
+            <input type="text" id="coverUrlInput" placeholder="https://site.com/image.jpg" style="display: none;">
+        </div>
+
+        <div class="form-group">
+            <label>🔞 Родительский маркер</label>
+            <div class="select-container" id="badgeSelectContainer">
+                <div class="custom-btn-trigger select-trigger" id="badgeSelectTrigger">E (Explicit)</div>
+                <div class="select-options">
+                    <div class="select-option" data-value="E">E (Explicit)</div>
+                    <div class="select-option" data-value="C">C (Clean)</div>
+                    <div class="select-option" data-value="">Без маркера</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group range-slider-card">
+            <label>⏱️ Выбор фрагмента</label>
+            <div class="custom-slider-track" id="doubleSliderTrack">
+                <div class="custom-slider-fill" id="doubleSliderFill"></div>
+                <div class="custom-slider-thumb" id="thumbStart"></div>
+                <div class="custom-slider-thumb" id="thumbEnd"></div>
+            </div>
+            <div class="range-labels">
+                <span id="lblStart">0с</span>
+                <span id="lblDuration" style="color: #fff;">Длина: 0с</span>
+                <span id="lblEnd">0с</span>
+            </div>
+        </div>
+
+        <button class="btn-submit" id="btnCreate">✨ Сгенерировать плеер</button>
+    </div>
+
+    <div id="playerScreen" class="screen screen-player">
+        <div class="player-nav">
+            <button class="btn-back" id="btnBack">← Студия</button>
+        </div>
+
+        <div class="player-center">
+            <div class="album-wrapper">
+                <img src="" alt="Cover" class="album-cover" id="playerCover">
+            </div>
+
+            <div class="meta-container">
+                <div class="title-badge-wrap">
+                    <span class="player-title" id="playerTitle">Название</span>
+                    <span class="explicit-badge" id="playerBadge">E</span>
+                </div>
+                <div class="player-artist" id="playerAuthor">Исполнитель</div>
+            </div>
+
+            <audio id="audioEngine" preload="auto"></audio>
+
+            <div style="width: 100%;">
+                <div class="waveform-component" id="waveformWrapper">
+                    <div class="waveform-bg" id="waveBgLayer"></div>
+                    <div class="waveform-progress" id="waveProgressLayer"></div>
+                </div>
+                <div class="time-row">
+                    <span id="timeCurrent">0:00</span>
+                    <span id="timeTotal">0:00</span>
+                </div>
+            </div>
+
+            <div class="controls-row">
+                <button class="round-btn" id="btnRewind" title="Вперед на 10 секунд">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </button>
+                <button class="round-btn play-state" id="btnPlay">
+                    <svg id="svgPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    <svg id="svgPause" viewBox="0 0 24 24" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                </button>
+                <button class="round-btn" id="btnStop" title="Сбросить">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+                </button>
+            </div>
+
+            <div class="video-watermark"><a href="https://github.com/1freshfork">@1freshfork</a></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- ПЕРЕМЕННЫЕ И НАСТРОЙКИ ---
+    let totalDuration = 100; 
+    let valStart = 0;
+    let valEnd = 100;
+    let activeMethod = 'file';
+    let currentBadge = 'E';
+    let rawAudioBuffer = null;
+
+    // Элементы UI
+    const audioInput = document.getElementById('audioInput');
+    const audioTriggerBtn = document.getElementById('audioTriggerBtn');
+    const coverInput = document.getElementById('coverInput');
+    const coverTriggerBtn = document.getElementById('coverTriggerBtn');
+    const titleInput = document.getElementById('titleInput');
+    const authorInput = document.getElementById('authorInput');
+    const coverFileBox = document.getElementById('coverFileBox');
+    const coverUrlInput = document.getElementById('coverUrlInput');
+    const tabFileBtn = document.getElementById('tabFileBtn');
+    const tabUrlBtn = document.getElementById('tabUrlBtn');
+    
+    // Кастомный селект
+    const badgeSelectContainer = document.getElementById('badgeSelectContainer');
+    const badgeSelectTrigger = document.getElementById('badgeSelectTrigger');
+    
+    // Элементы кастомного слайдера диапазона
+    const doubleSliderTrack = document.getElementById('doubleSliderTrack');
+    const doubleSliderFill = document.getElementById('doubleSliderFill');
+    const thumbStart = document.getElementById('thumbStart');
+    const thumbEnd = document.getElementById('thumbEnd');
+    const lblStart = document.getElementById('lblStart');
+    const lblEnd = document.getElementById('lblEnd');
+    const lblDuration = document.getElementById('lblDuration');
+
+    // Плеер элементы
+    const setupScreen = document.getElementById('setupScreen');
+    const playerScreen = document.getElementById('playerScreen');
+    const btnCreate = document.getElementById('btnCreate');
+    const btnBack = document.getElementById('btnBack');
+    const audioEngine = document.getElementById('audioEngine');
+    const playerCover = document.getElementById('playerCover');
+    const playerTitle = document.getElementById('playerTitle');
+    const playerAuthor = document.getElementById('playerAuthor');
+    const playerBadge = document.getElementById('playerBadge');
+    const waveBgLayer = document.getElementById('waveBgLayer');
+    const waveProgressLayer = document.getElementById('waveProgressLayer');
+    const waveformWrapper = document.getElementById('waveformWrapper');
+    const timeCurrent = document.getElementById('timeCurrent');
+    const timeTotal = document.getElementById('timeTotal');
+    const btnPlay = document.getElementById('btnPlay');
+    const btnStop = document.getElementById('btnStop');
+    const btnRewind = document.getElementById('btnRewind');
+    const svgPlay = document.getElementById('svgPlay');
+    const svgPause = document.getElementById('svgPause');
+
+    audioTriggerBtn.onclick = () => audioInput.click();
+    coverTriggerBtn.onclick = () => coverInput.click();
+
+    audioInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if(file) {
+            audioTriggerBtn.innerText = file.name;
+            const objectUrl = URL.createObjectURL(file);
+            const tempAudio = new Audio(objectUrl);
+            
+            tempAudio.onloadedmetadata = () => {
+                totalDuration = Math.floor(tempAudio.duration);
+                valStart = 0;
+                valEnd = totalDuration;
+                initDoubleSlider();
+                if(!titleInput.value) titleInput.value = file.name.split('.').slice(0, -1).join('.');
+                URL.revokeObjectURL(objectUrl);
+            };
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                ctx.decodeAudioData(evt.target.result).then(buffer => {
+                    rawAudioBuffer = buffer;
+                }).catch(err => {
+                    console.log("Применен фоллбек волны.");
+                    rawAudioBuffer = null;
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        }
+    };
+
+    coverInput.onchange = (e) => {
+        if(e.target.files[0]) coverTriggerBtn.innerText = e.target.files[0].name;
+    };
+
+    function setCoverMethod(method) {
+        activeMethod = method;
+        if(method === 'file') {
+            tabFileBtn.classList.add('active');
+            tabUrlBtn.classList.remove('active');
+            coverFileBox.style.display = 'block';
+            coverUrlInput.style.display = 'none';
+        } else {
+            tabUrlBtn.classList.add('active');
+            tabFileBtn.classList.remove('active');
+            coverFileBox.style.display = 'none';
+            coverUrlInput.style.display = 'block';
+        }
+    }
+    tabFileBtn.onclick = () => setCoverMethod('file');
+    tabUrlBtn.onclick = () => setCoverMethod('url');
+
+    badgeSelectTrigger.onclick = (e) => {
+        badgeSelectContainer.classList.toggle('open');
+        e.stopPropagation();
+    };
+    document.querySelectorAll('.select-option').forEach(opt => {
+        opt.onclick = function(e) {
+            currentBadge = this.getAttribute('data-value');
+            badgeSelectTrigger.innerText = this.innerText;
+            badgeSelectContainer.classList.remove('open');
+            e.stopPropagation();
+        };
+    });
+    document.addEventListener('click', () => badgeSelectContainer.classList.remove('open'));
+
+    function initDoubleSlider() {
+        renderSliderPositions();
+    }
+
+    function renderSliderPositions() {
+        const rect = doubleSliderTrack.getBoundingClientRect();
+        const pctStart = valStart / totalDuration;
+        const pctEnd = valEnd / totalDuration;
+
+        thumbStart.style.left = `${pctStart * 100}%`;
+        thumbEnd.style.left = `${pctEnd * 100}%`;
+        
+        doubleSliderFill.style.left = `${pctStart * 100}%`;
+        doubleSliderFill.style.width = `${(pctEnd - pctStart) * 100}%`;
+
+        lblStart.innerText = valStart + 'с';
+        lblEnd.innerText = valEnd + 'с';
+        lblDuration.innerText = `Длина: ${valEnd - valStart}с`;
+    }
+
+    function handleSliderMove(e, currentThumb) {
+        const rect = doubleSliderTrack.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        let offset = clientX - rect.left;
+        let pct = offset / rect.width;
+        pct = Math.min(1, Math.max(0, pct));
+        
+        let calculatedSec = Math.round(pct * totalDuration);
+
+        if(currentThumb === 'start') {
+            if(calculatedSec >= valEnd) calculatedSec = valEnd - 1;
+            valStart = calculatedSec;
+        } else {
+            if(calculatedSec <= valStart) calculatedSec = valStart + 1;
+            valEnd = calculatedSec;
+        }
+        renderSliderPositions();
+    }
+
+    function attachSliderEvents(thumb, type) {
+        const startMove = (e) => {
+            e.preventDefault();
+            const onMove = (evt) => handleSliderMove(evt, type);
+            const endMove = () => {
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', endMove);
+                document.removeEventListener('touchmove', onMove);
+                document.removeEventListener('touchend', endMove);
+            };
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', endMove);
+            document.addEventListener('touchmove', onMove, { passive: false });
+            document.addEventListener('touchend', endMove);
+        };
+        thumb.addEventListener('mousedown', startMove);
+        thumb.addEventListener('touchstart', startMove, { passive: false });
+    }
+
+    attachSliderEvents(thumbStart, 'start');
+    attachSliderEvents(thumbEnd, 'end');
+
+    setTimeout(initDoubleSlider, 200);
+
+    function buildWaveformBars() {
+        waveBgLayer.innerHTML = '';
+        waveProgressLayer.innerHTML = '';
+        
+        const count = 32;
+        let peaks = [];
+
+        if (rawAudioBuffer) {
+            const rawData = rawAudioBuffer.getChannelData(0);
+            const step = Math.floor(rawData.length / count);
+            for (let i = 0; i < count; i++) {
+                let max = 0;
+                for (let j = 0; j < step; j++) {
+                    const val = rawData[i * step + j];
+                    if (val > max) max = val;
+                }
+                peaks.push(max);
+            }
+            const highestPeak = Math.max(...peaks) || 1;
+            peaks = peaks.map(p => (p / highestPeak));
+        } else {
+            for (let i = 0; i < count; i++) {
+                peaks.push(Math.sin(i * 0.4) * 0.4 + 0.5 + Math.random() * 0.1);
+            }
+        }
+
+        for (let i = 0; i < count; i++) {
+            const h = Math.min(100, Math.max(15, peaks[i] * 100));
+            
+            const barBg = document.createElement('div');
+            barBg.className = 'wave-bar';
+            barBg.style.height = `${h}%`;
+            waveBgLayer.appendChild(barBg);
+
+            const barProg = document.createElement('div');
+            barProg.className = 'wave-bar';
+            barProg.style.height = `${h}%`;
+            waveProgressLayer.appendChild(barProg);
+        }
+    }
+
+    btnCreate.onclick = () => {
+        if(!audioInput.files[0]) {
+            alert('Пожалуйста, загрузите аудиофайл!');
+            return;
+        }
+
+        const audioSrcUrl = URL.createObjectURL(audioInput.files[0]);
+        audioEngine.src = audioSrcUrl;
+        audioEngine.currentTime = valStart;
+
+        if(activeMethod === 'file' && coverInput.files[0]) {
+            playerCover.src = URL.createObjectURL(coverInput.files[0]);
+        } else if(activeMethod === 'url' && coverUrlInput.value.trim() !== '') {
+            playerCover.src = coverUrlInput.value.trim();
+        } else {
+            playerCover.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Crect width='200' height='200' fill='%23141420'/%3E%3Ctext x='50%25' y='50%25' fill='%23555' font-size='12' font-family='sans-serif' text-anchor='middle' dy='.3em'%3ETFP AUDIO%3C/text%3E%3C/svg%3E";
+        }
+
+        playerTitle.innerText = titleInput.value.trim() || "Без названия";
+        playerAuthor.innerText = authorInput.value.trim() || "Неизвестный исполнитель";
+
+        if(currentBadge) {
+            playerBadge.innerText = currentBadge;
+            playerBadge.style.display = 'inline-block';
+        } else {
+            playerBadge.style.display = 'none';
+        }
+
+        setupScreen.classList.remove('active');
+        playerScreen.classList.add('active');
+
+        buildWaveformBars();
+        
+        timeCurrent.innerText = "0:00";
+        timeTotal.innerText = formatTime(valEnd - valStart);
+        waveProgressLayer.style.clipPath = `inset(0 100% 0 0)`;
+    };
+
+    btnBack.onclick = () => {
+        audioEngine.pause();
+        setPlayState(false);
+        playerScreen.classList.remove('active');
+        setupScreen.classList.add('active');
+        setTimeout(renderSliderPositions, 50);
+    };
+
+    function setPlayState(isPlaying) {
+        if(isPlaying) {
+            svgPlay.style.display = 'none';
+            svgPause.style.display = 'block';
+        } else {
+            svgPlay.style.display = 'block';
+            svgPause.style.display = 'none';
+        }
+    }
+
+    btnPlay.onclick = () => {
+        if(audioEngine.paused) {
+            if(audioEngine.currentTime >= valEnd || audioEngine.currentTime < valStart) {
+                audioEngine.currentTime = valStart;
+            }
+            audioEngine.play().catch(() => {});
+            setPlayState(true);
+        } else {
+            audioEngine.pause();
+            setPlayState(false);
+        }
+    };
+
+    btnStop.onclick = () => {
+        audioEngine.pause();
+        audioEngine.currentTime = valStart;
+        setPlayState(false);
+        updateProgressUI();
+    };
+
+    btnRewind.onclick = () => {
+        let targetTime = audioEngine.currentTime + 10;
+        if(targetTime >= valEnd) {
+            audioEngine.currentTime = valStart;
+        } else {
+            audioEngine.currentTime = targetTime;
+        }
+        updateProgressUI();
+    };
+
+    function updateProgressUI() {
+        const currentRelative = audioEngine.currentTime - valStart;
+        const totalFragmentDuration = valEnd - valStart;
+        
+        timeCurrent.innerText = formatTime(Math.max(0, currentRelative));
+        
+        let progressPct = (currentRelative / totalFragmentDuration) * 100;
+        progressPct = Math.min(100, Math.max(0, progressPct));
+        waveProgressLayer.style.clipPath = `inset(0 ${100 - progressPct}% 0 0)`;
+    }
+
+    audioEngine.ontimeupdate = () => {
+        if(audioEngine.currentTime >= valEnd) {
+            audioEngine.pause();
+            audioEngine.currentTime = valStart;
+            setPlayState(false);
+        }
+        updateProgressUI();
+    };
+
+    waveformWrapper.onclick = (e) => {
+        const rect = waveformWrapper.getBoundingClientRect();
+        const clickX = e.clientX - rect.left;
+        let pct = clickX / rect.width;
+        pct = Math.min(1, Math.max(0, pct));
+        
+        const totalFragmentDuration = valEnd - valStart;
+        audioEngine.currentTime = valStart + (totalFragmentDuration * pct);
+        updateProgressUI();
+    };
+
+    function formatTime(seconds) {
+        if(isNaN(seconds) || seconds < 0) return "0:00";
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+</script>
+
+</body>
+</html>
